@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+rust_sysroot=$(rustc --print sysroot)
+rust_host=$(rustc -vV | sed -n 's/^host: //p')
+rust_objcopy="$rust_sysroot/lib/rustlib/$rust_host/bin/rust-objcopy"
+
+export DYLD_LIBRARY_PATH="$rust_sysroot/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+exec "$rust_objcopy" "$@"
