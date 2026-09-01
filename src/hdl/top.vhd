@@ -72,7 +72,7 @@ begin
     sys_led(0) <= rstn;
 
 
-    -- PLL: Generate 108 MHz from 27 MHz input
+    -- PLL: Generate 96 MHz from 27 MHz input
     pll: SysPLL
         port map (
             sys_clk => sys_clk,
@@ -85,7 +85,7 @@ begin
     neorv: neorv32_top
         generic map (
             -- Clocking --
-            CLOCK_FREQUENCY   => 108000000,         -- clock frequency of clk_i in Hz
+            CLOCK_FREQUENCY   => 96000000,          -- clock frequency of clk_i in Hz
             -- Boot Configuration --
             BOOT_MODE_SELECT  => 0,                 -- boot via internal bootloader
             -- Enable JTAG / Debugger --
