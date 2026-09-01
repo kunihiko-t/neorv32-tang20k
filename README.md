@@ -45,11 +45,19 @@ gmake bitstream summary
 
 生成物は`build/top.fs`です。
 
-現在の構成は96MHz制約に対して最大104.25MHzで、LUT4を27.9%、BSRAMを56.5%使用します。
+現在の構成は96MHz制約に対して最大105.52MHzで、LUT4を27.9%、BSRAMを56.5%使用します。
+
+FPGA構成後にPLLがロックしてから、CPUを約5秒間リセットに保ちます。
+
+これにより、JTAG転送終了後にUSB-UARTを開くための時間を確保します。
+
+リセット回路の単体テストは次のコマンドで実行します。
+
+```sh
+gmake test-reset
+```
 
 ## 実機確認の安全条件
-
-現在のmacOS環境では、AppleUSBFTDIドライバがJTAGインターフェースを使用しており、`openFPGALoader`から基板を検出できません。
 
 まず次の読み取り専用コマンドで検出を確認します。
 
@@ -57,7 +65,7 @@ gmake bitstream summary
 openFPGALoader --scan-usb
 ```
 
-Tang Nano 20Kが表示されない場合は、そこで停止します。
+この環境では、SIPEED USB DebuggerとGowin GW2A(R)-18(C)を検出できています。
 
 表示された場合だけ、次のコマンドでSRAMへ一時転送できます。
 
@@ -72,3 +80,25 @@ openFPGALoader -b tangnano20k build/top.fs
 `openFPGALoader`の`-f`オプションは使用しません。
 
 NEORV32ブートローダーのUARTは19,200 baud、8-N-1です。
+
+## UARTの現状
+
+USBシリアルは`/dev/cu.usbserial-20250303171`として認識されていますが、現在はFPGAからのデータを受信できていません。
+
+NEORV32とは独立した極小UART送信回路でも受信が0バイトだったため、NEORV32固有の問題よりもBL616、USB-UARTドライバ、または基板上の経路が有力です。
+
+診断回路は次のコマンドで生成できます。
+
+```sh
+gmake uart-probe
+```
+
+生成物は`build/uart_probe/uart_probe.fs`です。
+
+この回路はFPGAの69番ピンから115,200 baudで`0x55`を約100ミリ秒ごとに送信します。
+
+ボード上のデバッガから識別子`2025030317`を取得しています。
+
+[Sipeedの公式更新表](https://en.wiki.sipeed.com/hardware/en/tang/common-doc/update_debugger.html)でもTang Nano 20Kの現行版は`2025030317`とされているため、ファームウェアの再書込みは行っていません。
+
+次の安全な確認手段は、外付けUSB-UARTまたはロジックアナライザで69番ピンの信号を直接測定することです。

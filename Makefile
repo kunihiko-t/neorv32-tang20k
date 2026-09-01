@@ -103,7 +103,7 @@ SCRIPT_SUMMARY="$(abspath ./script/summary.py)"
 ####################################################################################################
 # Rules
 ####################################################################################################
-.PHONY: all synth pnr bitstream summary upload
+.PHONY: all synth pnr bitstream summary upload test-reset uart-probe
 .PRECIOUS: $(OBJDIR)/%.syn.json $(OBJDIR)/%.pnr.json
 
 # High-level wrapper targets
@@ -133,6 +133,23 @@ upload-flash:
 
 upload-app-flash:
 	openFPGALoader -b $(BOARD) -o 0x400000 -f $(SW_FILE)
+
+test-reset:
+	mkdir -p $(OBJDIR)/test
+	cd $(OBJDIR)/test && ghdl -a --std=08 ../../src/hdl/BTNReset.vhd ../../test/BTNReset_tb.vhd
+	cd $(OBJDIR)/test && ghdl -e --std=08 BTNReset_tb
+	cd $(OBJDIR)/test && ghdl -r --std=08 BTNReset_tb --stop-time=200ns
+
+uart-probe: $(OBJDIR)/uart_probe/uart_probe.fs
+
+$(OBJDIR)/uart_probe/uart_probe.fs: diagnostics/uart_probe/uart_probe.v \
+		diagnostics/uart_probe/uart_probe.cst diagnostics/uart_probe/uart_probe.py
+	mkdir -p $(OBJDIR)/uart_probe
+	yosys -p "read_verilog diagnostics/uart_probe/uart_probe.v; synth_gowin -top uart_probe -json $(OBJDIR)/uart_probe/uart_probe.json"
+	nextpnr-himbaechel --device $(GOWIN_DEVICE) --json $(OBJDIR)/uart_probe/uart_probe.json \
+	  --write $(OBJDIR)/uart_probe/uart_probe_pnr.json --vopt family=$(GOWIN_FAMILY) \
+	  --vopt cst=diagnostics/uart_probe/uart_probe.cst --pre-pack diagnostics/uart_probe/uart_probe.py
+	gowin_pack -d $(GOWIN_FAMILY) -o $@ $(OBJDIR)/uart_probe/uart_probe_pnr.json
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
