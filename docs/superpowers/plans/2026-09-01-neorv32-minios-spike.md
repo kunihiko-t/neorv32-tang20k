@@ -188,11 +188,11 @@
 - Consumes: `build/top.fs`、Tang Nano 20K
 - Produces: 揮発性SRAM上で動くNEORV32ブートローダーのUART出力
 
-- [ ] **Step 1: Re-check USB visibility**
+- [x] **Step 1: Re-check USB visibility**
 
   Run: `openFPGALoader --scan-usb`
 
-  Expected: Tang Nano 20KのJTAGインターフェースが表示される。表示されなければここで停止する。
+  Result: `openFPGALoader v1.1.1`でも`No USB devices found`となったため、ここで停止した。
 
 - [ ] **Step 2: Load SRAM only**
 
