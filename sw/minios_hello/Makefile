@@ -1,6 +1,7 @@
 REPO_ROOT := ../..
 NEORV32_HOME := $(REPO_ROOT)/lib/neorv32
-TARGET := riscv32imc-unknown-none-elf
+# CPUはRV32IM(C拡張なし)のため既定はim。imcでビルドすると即トラップする。
+TARGET := riscv32im-unknown-none-elf
 APP := minios_hello
 BUILD_DIR := build
 ELF := target/$(TARGET)/release/$(APP)
