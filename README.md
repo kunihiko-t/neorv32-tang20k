@@ -87,7 +87,26 @@ openFPGALoader -b tangnano20k build/top.fs
 
 NEORV32ブートローダーのUARTは19,200 baud、8-N-1です。
 
-## UARTの現状
+## 実行フロー(OpenOCD経由、2026-09-03確立)
+
+フラッシュのNEORV32を通常起動(S2なしでUSB挿入、8秒待機)し、次のコマンドで実行します。
+
+```sh
+. script/env.sh
+bash script/run_hello.sh
+```
+
+CPUはRV32IM(C拡張なし)のため、`riscv32im-unknown-none-elf`でビルドします。
+既にプログラムが走って`wfi`待機中だと書き込みがbusy失敗するため、
+`script/ocd/run_hello.cfg`は`reset halt`してからIMEMへ直接書き込み、
+`pc=0`から実行します。ログは`build/uart_hello.log`です。
+
+期待値はUARTへの`MiniOS/RV32 hello`と、USB-C側からのLED
+`消灯・点灯・点滅・消灯・点灯・消灯`(GPIO `0b101`の負論理表示)です。
+
+`S1`はCPUリセットです。`S2`+電源投入はFPGAが空になるため通常は使いません。
+
+## UARTの診断記録
 
 USBシリアルは`/dev/cu.usbserial-20250303171`として認識されていますが、現在はFPGAからのデータを受信できていません。
 
