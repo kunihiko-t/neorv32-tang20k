@@ -107,7 +107,7 @@ SCRIPT_SUMMARY="$(abspath ./script/summary.py)"
 ####################################################################################################
 # Rules
 ####################################################################################################
-.PHONY: all synth pnr bitstream summary upload test-reset uart-probe
+.PHONY: all synth pnr bitstream summary upload test-reset uart-probe hdmi-probe
 .PRECIOUS: $(OBJDIR)/%.syn.json $(OBJDIR)/%.pnr.json
 
 # High-level wrapper targets
@@ -145,6 +145,18 @@ test-reset:
 	cd $(OBJDIR)/test && ghdl -r --std=08 BTNReset_tb --stop-time=200ns
 
 uart-probe: $(OBJDIR)/uart_probe/uart_probe.fs
+
+hdmi-probe: $(OBJDIR)/hdmi/hdmi_probe.fs
+
+$(OBJDIR)/hdmi/hdmi_probe.fs: diagnostics/hdmi/hdmi_probe.v \
+		diagnostics/hdmi/hdmi_timing.v diagnostics/hdmi/tmds_encode.v \
+		diagnostics/hdmi/video_pll.v diagnostics/hdmi/hdmi_probe.cst diagnostics/hdmi/hdmi_probe.py
+	mkdir -p $(OBJDIR)/hdmi
+	yosys -p "read_verilog diagnostics/hdmi/hdmi_probe.v diagnostics/hdmi/hdmi_timing.v diagnostics/hdmi/tmds_encode.v diagnostics/hdmi/video_pll.v; synth_gowin -top hdmi_probe -json $(OBJDIR)/hdmi/hdmi_probe.json"
+	nextpnr-himbaechel --device $(GOWIN_DEVICE) --json $(OBJDIR)/hdmi/hdmi_probe.json \
+	  --write $(OBJDIR)/hdmi/hdmi_probe_pnr.json --vopt family=$(GOWIN_FAMILY) \
+	  --vopt cst=diagnostics/hdmi/hdmi_probe.cst --pre-pack diagnostics/hdmi/hdmi_probe.py
+	gowin_pack -d $(GOWIN_FAMILY) -o $@ $(OBJDIR)/hdmi/hdmi_probe_pnr.json
 
 $(OBJDIR)/uart_probe/uart_probe.fs: diagnostics/uart_probe/uart_probe.v \
 		diagnostics/uart_probe/uart_probe.cst diagnostics/uart_probe/uart_probe.py
