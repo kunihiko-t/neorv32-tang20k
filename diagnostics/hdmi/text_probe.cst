@@ -1,0 +1,32 @@
+IO_LOC "sys_clk" 4;
+IO_PORT "sys_clk" PULL_MODE=UP;
+
+IO_LOC "tmds_clk_p" 33;
+IO_PORT "tmds_clk_p" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_LOC "tmds_clk_n" 34;
+IO_PORT "tmds_clk_n" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_LOC "tmds_data_p[0]" 35;
+IO_PORT "tmds_data_p[0]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_LOC "tmds_data_n[0]" 36;
+IO_PORT "tmds_data_n[0]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_LOC "tmds_data_p[1]" 37;
+IO_PORT "tmds_data_p[1]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_LOC "tmds_data_n[1]" 38;
+IO_PORT "tmds_data_n[1]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_LOC "tmds_data_p[2]" 39;
+IO_PORT "tmds_data_p[2]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_LOC "tmds_data_n[2]" 40;
+IO_PORT "tmds_data_n[2]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+
+IO_LOC "order_led[0]" 15;
+IO_PORT "order_led[0]" PULL_MODE=UP;
+IO_LOC "order_led[1]" 16;
+IO_PORT "order_led[1]" PULL_MODE=UP;
+IO_LOC "order_led[2]" 17;
+IO_PORT "order_led[2]" PULL_MODE=UP;
+IO_LOC "order_led[3]" 18;
+IO_PORT "order_led[3]" PULL_MODE=UP;
+IO_LOC "order_led[4]" 19;
+IO_PORT "order_led[4]" PULL_MODE=UP;
+IO_LOC "order_led[5]" 20;
+IO_PORT "order_led[5]" PULL_MODE=UP;
