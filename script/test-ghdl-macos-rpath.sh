@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ghdl_bin=/Users/valletta/dev/tang_nano_20k/.tools/oss-cad-suite/libexec/ghdl
+rpath_count=$(otool -l "$ghdl_bin" | awk '$1 == "path" && $2 == "@executable_path/../lib/" { count++ } END { print count + 0 }')
+
+if [[ "$rpath_count" -ne 1 ]]; then
+  echo "expected one OSS CAD Suite GHDL RPATH, found $rpath_count" >&2
+  exit 1
+fi
+
+"$ghdl_bin" --version >/dev/null

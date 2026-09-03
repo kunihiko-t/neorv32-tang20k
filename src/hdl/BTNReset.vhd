@@ -13,9 +13,12 @@ entity BTNReset is
 end;
 
 architecture impl of BTNReset is
-    signal counter: integer range 0 to DEBOUNCE_CYCLES;
-    signal rstn_last: std_logic;
+    signal counter: integer range 0 to DEBOUNCE_CYCLES := 0;
+    signal rstn_last: std_logic := '0';
+    signal rstn: std_logic := '0';
 begin
+
+    rstn_o <= rstn;
 
     shift: process(clk)
     begin
@@ -35,7 +38,7 @@ begin
             -- We count how long the input signal was stable
             -- If it was stable for long enough, propagate to output
             if counter = DEBOUNCE_CYCLES then
-                rstn_o <= rstn_last;
+                rstn <= rstn_last;
             end if;
         end if;
     end process;

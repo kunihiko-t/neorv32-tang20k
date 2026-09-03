@@ -1,4 +1,4 @@
-// Derive a 108 MHz clock from the 27 MHz system clock
+// Derive a 96 MHz clock from the 27 MHz system clock
 module SysPLL ( 
         input sys_clk,
         input enable,
@@ -10,9 +10,9 @@ module SysPLL (
     rPLL #(
         .DEVICE("GW2AR-18"),
         .FCLKIN("27"),
-        .IDIV_SEL(0), // -> PFD = 27 MHz (range: 3-400 MHz)
-        .FBDIV_SEL(3), // -> CLKOUT = 108 MHz (range: 3.125-600 MHz)
-        .ODIV_SEL(8), // -> VCO = 864 MHz (range: 400-1200 MHz)
+        .IDIV_SEL(8), // -> PFD = 3 MHz (range: 3-400 MHz)
+        .FBDIV_SEL(31), // -> CLKOUT = 96 MHz (range: 3.125-600 MHz)
+        .ODIV_SEL(8), // -> VCO = 768 MHz (range: 400-1200 MHz)
         .DYN_ODIV_SEL("false"),
         .DYN_FBDIV_SEL("false"),
         .DYN_IDIV_SEL("false"),
