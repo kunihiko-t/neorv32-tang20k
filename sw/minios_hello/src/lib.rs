@@ -2,6 +2,10 @@
 
 pub const SYSTEM_CLOCK_HZ: u32 = 96_000_000;
 
+pub unsafe fn show_startup_led(gpio: *mut u32) {
+    unsafe { core::ptr::write_volatile(gpio, 0b101) };
+}
+
 pub const fn uart_control(clock_hz: u32, baud_rate: u32) -> u32 {
     if clock_hz == 0 || baud_rate == 0 {
         return 0;
@@ -24,7 +28,16 @@ pub const fn uart_control(clock_hz: u32, baud_rate: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{uart_control, SYSTEM_CLOCK_HZ};
+    use super::{show_startup_led, uart_control, SYSTEM_CLOCK_HZ};
+
+    #[test]
+    fn shows_rust_startup_on_gpio() {
+        let mut gpio = 0;
+
+        unsafe { show_startup_led(&mut gpio) };
+
+        assert_eq!(gpio, 0b101);
+    }
 
     #[test]
     fn uses_timing_clean_96_mhz_system_clock() {

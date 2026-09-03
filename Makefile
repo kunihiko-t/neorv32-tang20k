@@ -72,6 +72,9 @@ SIMULATION_SETS = i2s_master \
 NTHREADS ?= 4
 
 SW_FILE ?= neorv32_exe.bin
+APP_IMAGE = build/generated/neorv32_application_image.vhd
+APP_SOURCES = sw/minios_hello/Cargo.toml sw/minios_hello/Cargo.lock \
+	sw/minios_hello/link.x sw/minios_hello/src/lib.rs sw/minios_hello/src/main.rs
 
 ####################################################################################################
 # Abbreviations
@@ -88,7 +91,8 @@ NEORVDIR=lib/neorv32/rtl
 ####################################################################################################
 SIM_SETS=$(addsuffix .sim,$(SIMULATION_SETS))
 SYN_VERILOG_PATHS=$(addprefix $(HDLDIR)/,$(APP_VERILOG))
-SYN_VHDL_PATHS=$(addprefix $(HDLDIR)/,$(APP_VHDL)) $(addprefix $(NEORVDIR)/,$(NEORV32_VHDL))
+SYN_VHDL_PATHS=$(addprefix $(HDLDIR)/,$(APP_VHDL)) \
+	$(subst $(NEORVDIR)/core/neorv32_application_image.vhd,$(APP_IMAGE),$(addprefix $(NEORVDIR)/,$(NEORV32_VHDL)))
 
 QUIET_FLAG=
 ifeq ($(strip $(VERBOSE)),)
@@ -156,6 +160,9 @@ $(OBJDIR):
 
 $(RPTDIR):
 	mkdir -p $(RPTDIR)
+
+$(APP_IMAGE): $(APP_SOURCES)
+	$(MAKE) -C sw/minios_hello app-vhd
 
 
 ####################################################################################################

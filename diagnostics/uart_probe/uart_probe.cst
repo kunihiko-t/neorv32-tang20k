@@ -1,7 +1,7 @@
 IO_LOC "sys_clk" 4;
 IO_PORT "sys_clk" PULL_MODE=UP;
 
-IO_LOC "sys_tx" 69;
+IO_LOC "sys_tx" 71;
 
 IO_LOC "sys_led" 15;
 IO_PORT "sys_led" PULL_MODE=UP;
