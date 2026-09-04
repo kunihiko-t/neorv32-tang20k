@@ -265,6 +265,30 @@ MiniOSの起動処理修正は`6f49b7b`に保存しています。
 ログは`build/openocd_flash_boot_check.log`、`build/uart_flash_boot_check.log`、`build/uart_flash_boot_acceptance.log`です。
 この確認でもフラッシュは変更していません。
 
+### MiniOS本体のフラッシュ書き込み
+
+2026年9月4日、SPIフラッシュのJEDEC ID `0x0b4017`を読み、全8 MiBをバックアップした後、上記のMiniOS実行形式を`0x400000`へ書き込みました。
+バックアップは`../checkpoints/2026-09-04-flash-before.bin`です。
+サイズは8,388,608バイト、SHA-256は`39157357dabe65b59935be5f760f6af487b6e6b79e54f4b42c622f05561f13ab`です。
+書き込み前のアプリ領域`0x400000..0x40ffff`はすべて`0xff`でした。
+
+Gowinの`0x81b`を再検出してから、次のコマンドを実行しました。
+
+```sh
+openFPGALoader -b tangnano20k -o 0x400000 -f --verify build/minios32/neorv32_exe.bin
+```
+
+消去対象は`0x400000..0x40ffff`で、書き込みと読み戻し照合はともに100%で完了し、終了コードは0でした。
+ログは`../checkpoints/2026-09-04-minios-flash.log`です。
+チップ名は未登録のため基本的な保護検出が使われましたが、保護解除オプションや全消去は指定していません。
+
+この段階では、HDMI対応FPGA回路はまだフラッシュへ書き込んでいません。
+書き込み後のUART受信は`0x00`と`0xe0`のみで、MiniOSの起動バナーもプロンプトも確認できませんでした。
+受信ログは`../checkpoints/2026-09-04-minios-flash-uart.log`です。
+この受信結果の原因は未確定であり、自動起動の成功とは扱いません。
+次はS2を押したまま電源を入れ直し、Gowinの構成用TAPを確認してHDMI対応FPGA回路を保存します。
+その後、通常の電源投入で起動とHDMI出力を確認します。
+
 ### USB-UARTのバイナリー転送制限
 
 標準BL616ファームウェアは、`Ctrl+X`に続く`Ctrl+C`でFPGAのUARTから管理端末へ切り替わります。
