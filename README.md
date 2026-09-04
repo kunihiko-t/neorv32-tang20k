@@ -260,6 +260,10 @@ MiniOSの起動処理修正は`6f49b7b`に保存しています。
 実機でVMAをゼロにして起動コードを実行する検査では、修正前はゼロのまま、修正後は初期値へのコピーを3回の読み戻しで確認しました。
 起動イメージのペイロードは、独立した`rust-objcopy -O binary`の出力とも完全一致しました。
 候補のELFと実行形式は、`../checkpoints/2026-09-04-flash-candidate/`にも保存しています。
+この候補をJTAG経由でIMEMへ転送し、5,526語すべてが`unmatched=0`になった後にRAMから起動しました。
+起動プロンプトとUSB-UARTのシェル受け入れテストが通っています。
+ログは`build/openocd_flash_boot_check.log`、`build/uart_flash_boot_check.log`、`build/uart_flash_boot_acceptance.log`です。
+この確認でもフラッシュは変更していません。
 
 ### USB-UARTのバイナリー転送制限
 
