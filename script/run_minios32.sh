@@ -38,7 +38,8 @@ for attempt in 1 2 3 4; do
     timeout 30 openocd -f "$ROOT/script/ocd/reboot.cfg" > /dev/null 2>&1 || true
     wait "$LISTENER_PID" || true
     cat "$LOG"
-    exit 0
+    grep -Fq "MiniOS/RV32 booting..." "$LOG"
+    exit $?
   fi
 done
 exit 1
