@@ -2,3 +2,7 @@
 /sw/minios_hello/target/
 /sw/minios_hello/build/
 __pycache__/
+/.venv
+/GLM_TASK.md
+/docs/superpowers/
+/docs/20??-??-??-*.md

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-MINIOS="${MINIOS:-/Users/valletta/dev/minios}"
+MINIOS="${MINIOS:-$(dirname "$(dirname "$ROOT")")/minios}"
 PORT="${1:-/dev/cu.usbserial-20250303171}"
 BAUD="${2:-19200}"
 SECS="${3:-30}"
@@ -16,11 +16,9 @@ WORDS="$ROOT/build/mww_words.cfg"
 mkdir -p "$ROOT/build"
 python3 "$ROOT/script/ocd/gen_mww_load.py" "$ELF" "$WORDS"
 
-VENV_PY="$ROOT/../tools/bl616/venv/bin/python"
-if [ -x "$VENV_PY" ]; then
-  PY="$VENV_PY"
-else
-  PY="python3"
+PY="${PYTHON:-python3}"
+if [ -z "${PYTHON:-}" ] && [ -x "$ROOT/.venv/bin/python" ]; then
+  PY="$ROOT/.venv/bin/python"
 fi
 
 OCDLOG="$ROOT/build/openocd_minios32.log"
