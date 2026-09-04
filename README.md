@@ -13,6 +13,7 @@ RV64/QEMU版は別のターゲットとして維持します。
 - Tang Nano 20KのSRAMへ一時転送できるビットストリームを生成する。
 - MiniOS RV32をRAMへ転送し、MacからUSB-UARTで`help`、`info`、`echo`を操作する。
 - MiniOSのUART出力をHDMI画面へ複写する（SRAM版で実機確認済み）。
+- HDMI対応FPGA回路とMiniOSをフラッシュに保存し、通常の電源投入で自動起動する（USB再接続後のシェルテストとHDMI表示を確認済み）。
 
 単体デモの`sw/minios_hello`はUART0へ`MiniOS/RV32 hello`と出力します。
 MiniOSカーネルのシェルを使う手順は、末尾の「MacのキーボードでMiniOSを操作する」を参照してください。
@@ -52,7 +53,7 @@ gmake bitstream summary
 HDMIを追加した構成は、CPUの96MHz制約に対して最大102.97MHzです。
 映像の27MHz制約も満たし、LUT4を29.8%、BSRAMを60.9%、PLLを2個中2個使用します。
 これらの数値は配置配線後の計算結果です。
-HDMIへの文字表示は、2026年9月4日に実機で確認しました。
+SRAM版のHDMIへの文字表示は、2026年9月4日に実機で確認しました。
 
 FPGA構成後にPLLがロックしてから、CPUを約5秒間リセットに保ちます。
 
@@ -86,12 +87,6 @@ openFPGALoader -b tangnano20k build/top.fs
 
 このコマンドはフラッシュを書き換えません。
 
-2026年9月1日に、`build/top.fs`を外部フラッシュの先頭へ検証付きで書き込みました。
-
-現在は電源を入れ直してもNEORV32が起動します。
-
-以前保存されていたNESTangは上書きされています。
-
 通常の開発ではSRAM転送を使います。
 
 外部フラッシュを更新するときだけ、対象を再検出してから`-f --verify`を使用します。
@@ -119,10 +114,12 @@ CPUはRV32IM(C拡張なし)のため、`riscv32im-unknown-none-elf`でビルド�
 
 ## UARTの診断記録
 
-以下はUARTが受信できなかった時点の記録です。
-現在は`/dev/cu.usbserial-20250303171`でMiniOSの起動ログとシェルのコマンド応答を受信確認済みです。
+UARTの確認結果は、転送方式ごとに分けて記録します。
+2026年9月4日にHDMI対応構成をSRAMへ転送したときは、`/dev/cu.usbserial-20250303171`でMiniOSの起動ログとシェルのコマンド応答を受信確認済みです。
+この結果はSRAM版の確認であり、フラッシュからの自動起動を示しません。
 
-NEORV32とは独立した極小UART送信回路でも受信が0バイトだったため、NEORV32固有の問題よりもBL616、USB-UARTドライバ、または基板上の経路が有力です。
+以前の診断では、NEORV32とは独立した極小UART送信回路でも受信が0バイトでした。
+この結果だけでは、BL616、USB-UARTドライバ、基板上の経路のどこに原因があるかは確定できません。
 
 診断回路は次のコマンドで生成できます。
 
@@ -141,15 +138,10 @@ gmake uart-probe
 ## MacのキーボードでMiniOSを操作する
 
 USB-C経由のUARTを使うため、FPGAにキーボードを直接接続する必要はありません。
-まずNEORV32が通常起動した状態で、MiniOSをRAMへ転送します。
+保存済みのMiniOSを使う場合は、S2を押さずにUSB-Cを接続し、30秒ほど待ちます。
+通常利用ではプログラムの手動転送は不要です。
 以下はすべてこのリポジトリーのルートで実行します。
-
-```sh
-. script/env.sh
-bash script/run_minios32.sh /dev/cu.usbserial-20250303171 19200 10
-```
-
-転送が終わったら、インストール済みのpyserialで端末を開きます。
+インストール済みのpyserialで端末を開きます。
 
 ```sh
 ../tools/bl616/venv/bin/python -m serial.tools.miniterm --eol CR /dev/cu.usbserial-20250303171 19200
@@ -172,9 +164,16 @@ Backspaceで末尾の文字を消せます。
 ```
 
 これらのコマンドはフラッシュを書き換えません。
-電源の入れ直しやS1によるリセット後は、MiniOSをRAMへ再転送してください。
-フラッシュに保存済みの旧構成にはHDMIシェル表示がありません。
-以下の新構成をSRAMへ転送した場合だけ、HDMIへの複写が有効になります。
+フラッシュ保存版とは別の開発版を試す場合は、端末を閉じてからRAMへ転送します。
+
+```sh
+. script/env.sh
+bash script/run_minios32.sh /dev/cu.usbserial-20250303171 19200 10
+```
+
+FPGAを再構成するとRAMへ転送した開発版は失われます。
+同じ開発版を使い続ける場合だけ、再転送してください。
+通常の電源投入では、フラッシュ保存版が起動します。
 
 ## UART出力をHDMIへ複写する構成
 
@@ -197,8 +196,8 @@ gmake OBJDIR=build/hdmi_minios bitstream summary
 MiniOSの5,514語は1回目の転送で`unmatched=0`となり、コマンド、Backspace、入力長制限、復帰、CRLFの実機UARTテストも通りました。
 最後に`echo HDMI MIRROR READY`を実行しています。
 ユーザーの目視で、HDMIモニターに`echo HDMI MIRROR READY`などの出力と、最下行の`minios>`が表示されることを確認しました。
-使用したビットストリームのSHA-256は`438750ebd1f787ba43a1ac19aac93e003862a5b1105d0e0f177e1f276d58c731`です。
-フラッシュは変更していません。
+使用した`top.fs`ファイルのSHA-256は`438750ebd1f787ba43a1ac19aac93e003862a5b1105d0e0f177e1f276d58c731`です。
+この確認ではフラッシュを変更していません。
 
 搭載ツールのapyculaには、GW2Aの左側PLLを処理すると`offx`が未初期化になる不具合があります。
 CPUと映像で左右両方のPLLを使うため、`script/pack_gowin.py`がその場合だけ座標計算を補正します。
@@ -213,17 +212,18 @@ openFPGALoader -b tangnano20k build/hdmi_minios/top.fs
 bash script/run_minios32.sh /dev/cu.usbserial-20250303171 19200 10
 ```
 
-FPGAを再構成するとMiniOSのRAM内容も失われるため、再転送が必要です。
+上の手順は、FPGA回路と開発版MiniOSを一時的に転送する場合に使います。
 `PACK_FLAGS=--jtag_as_gpio`はCPUデバッグ用TAPに接続するために維持しています。
 新構成をフラッシュへ書き込む手順ではありません。
-電源を入れ直すとフラッシュ内のHDMIなし構成へ戻ります。
+電源を入れ直すとフラッシュに保存した構成へ戻ります。
+通常の電源投入からのMiniOS起動とHDMI表示の結果は、末尾に記録しています。
 
 Muse SparkとLunaの担当範囲、時間、品質の記録は[実装比較](docs/2026-09-04-muse-luna-evaluation.md)を参照してください。
 
-## フラッシュ自動起動の準備
+## フラッシュ自動起動の記録
 
 HDMIシェル動作版のソースと実行ファイルは、[復旧点の記録](docs/2026-09-04-hdmi-checkpoint.md)に保存しています。
-以下はMiniOS本体の起動イメージを作成する手順であり、フラッシュは書き換えません。
+MiniOS本体の起動イメージを作成し、FPGA回路とともにフラッシュへ保存した結果を記録します。
 `sw/minios_hello`とは別のプログラムです。
 
 ```sh
@@ -249,9 +249,10 @@ NEORV32のブートローダーは、フラッシュの`0x400000`から実行形
 | HDMI対応FPGA回路 | `0x000000` | `build/hdmi_minios/top.fs` |
 | MiniOS実行形式 | `0x400000` | `build/minios32/neorv32_exe.bin` |
 
-書き込み前にはGowinの構成用TAPを再検出し、対象フラッシュの容量を確認して既存内容をバックアップします。
-書き込みは領域ごとに`--verify`を付けて行い、最後に通常の電源投入で起動を確認します。
-この準備段階では、フラッシュ自動起動はまだ実機確認していません。
+書き込み前にGowinの構成用TAPを再検出し、対象フラッシュの容量を確認して既存内容をバックアップしました。
+MiniOS実行形式とHDMI対応FPGA回路を書き込み、各領域の`--verify`を完了しました。
+プログラマーによる再読み込み後と、通常のUSB再接続後の両方でMiniOSのシェルテストが通りました。
+USB再接続後には、ユーザーからHDMI画面の表示も確認できたとの報告を受けています。
 
 2026年9月4日の候補は22,116バイト（ヘッダー12バイト、ペイロード22,104バイト）です。
 SHA-256は`8842da45e095cc35eba7e3ca90605978acb880d92124dfecf54f9a2b898c6891`です。
@@ -282,12 +283,40 @@ openFPGALoader -b tangnano20k -o 0x400000 -f --verify build/minios32/neorv32_exe
 ログは`../checkpoints/2026-09-04-minios-flash.log`です。
 チップ名は未登録のため基本的な保護検出が使われましたが、保護解除オプションや全消去は指定していません。
 
-この段階では、HDMI対応FPGA回路はまだフラッシュへ書き込んでいません。
-書き込み後のUART受信は`0x00`と`0xe0`のみで、MiniOSの起動バナーもプロンプトも確認できませんでした。
-受信ログは`../checkpoints/2026-09-04-minios-flash-uart.log`です。
-この受信結果の原因は未確定であり、自動起動の成功とは扱いません。
-次はS2を押したまま電源を入れ直し、Gowinの構成用TAPを確認してHDMI対応FPGA回路を保存します。
-その後、通常の電源投入で起動とHDMI出力を確認します。
+### HDMI対応FPGA回路のフラッシュ書き込み
+
+続けて2026年9月4日、HDMI対応FPGA回路をフラッシュの`0x000000`へ書き込みました。
+ビットストリーム`build/hdmi_minios/top.fs`ファイルのSHA-256は`438750ebd1f787ba43a1ac19aac93e003862a5b1105d0e0f177e1f276d58c731`です。
+パック後のSPI書き込みデータサイズは907,418バイトです。
+
+```sh
+openFPGALoader -b tangnano20k -f --verify build/hdmi_minios/top.fs
+```
+
+消去対象は`0x000000..0x0dffff`で、書き込みと読み戻し照合はともに100%で完了し、終了コードは0でした。
+ログは`../checkpoints/2026-09-04-hdmi-flash.log`です。
+書き込み後、プログラマーがフラッシュからFPGA構成を再読み込みしました。
+この再読み込み後にアプリのRAM転送、PC再設定、手動起動は行っていません。
+
+書き込み操作中のUART受信は947バイトで、`0x00`と`0xe0`のみでした。
+起動バナーと`minios> `プロンプトはこの受信では読めませんでした。
+受信ログは`../checkpoints/2026-09-04-hdmi-flash-uart.log`です。
+USB-UARTを閉じ、19,200 baudで開き直すと、文字を正常に受信できました。
+文字化けの原因は未確定です。
+OpenOCDでの状態確認ではCPUを一時停止して再開しましたが、リセットやプログラムの変更は行っていません。
+
+開き直し後に`script/test_minios32_uart.py`が終了コード0で完了しました。
+`help`、`info`、`echo`、DELによる編集、未知コマンド、入力長超過からの復帰、CRLFを検証しています。
+ログは`../checkpoints/2026-09-04-flash-shell-acceptance.log`です。
+その後に`echo FLASH BOOT READY`を送り、別の`FLASH BOOT READY`行と`minios> `プロンプトを受信しました。
+ログは`../checkpoints/2026-09-04-flash-hdmi-marker.log`です。
+
+### 通常の電源投入からの起動確認
+
+最後に、ユーザーがS2を押さずにUSB-Cを抜き差しし、HDMI画面が表示されたと報告しました。
+再接続後はRAM転送やJTAG操作をせず、USB-UARTから同じシェルテストを実行し、全項目が終了コード0で通りました。
+ログは`../checkpoints/2026-09-04-cold-boot-shell.log`です。
+これにより、通常の電源投入からMiniOSがフラッシュ保存版で起動し、Macから操作できることを確認しました。
 
 ### USB-UARTのバイナリー転送制限
 
