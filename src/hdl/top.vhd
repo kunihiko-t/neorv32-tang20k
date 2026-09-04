@@ -20,7 +20,9 @@ entity top is
         mspi_di: out std_logic;
         mspi_cs: out std_logic;
         mspi_clk: out std_logic;
-        mspi_wp: out std_logic
+        mspi_wp: out std_logic;
+        tmds_clk_p, tmds_clk_n: out std_logic;
+        tmds_data_p, tmds_data_n: out std_logic_vector(2 downto 0)
     );
 end;
 
@@ -37,6 +39,15 @@ architecture impl of top is
     signal con_gpio_out: std_ulogic_vector(31 downto 0);
     signal con_gpio_in: std_ulogic_vector(31 downto 0) := (others => 'L');
     signal con_spi_csn: std_ulogic_vector(7 downto 0);
+    signal con_uart_tx: std_ulogic;
+
+    component hdmi_console is
+        port (
+            sys_clk, cpu_reset_n, uart_tx: in std_logic;
+            tmds_clk_p, tmds_clk_n: out std_logic;
+            tmds_data_p, tmds_data_n: out std_logic_vector(2 downto 0)
+        );
+    end component;
 
     component SysPLL is
         port (
@@ -147,7 +158,7 @@ begin
             spi_dat_i   => mspi_do,
             spi_csn_o   => con_spi_csn,
             -- primary UART0 (available if IO_UART0_EN = true) --
-            uart0_txd_o => sys_tx,       -- UART0 send data. Connect to BL616
+            uart0_txd_o => con_uart_tx,  -- Mirror internally before sending to BL616
             uart0_rxd_i => sys_rx,        -- UART0 receive data. Connect to BL616
             rstn_wdt_o => rstn_wdt_o
         );
@@ -161,5 +172,13 @@ begin
 
     -- CS0 is SPI flash
     mspi_cs <= con_spi_csn(0);
+
+    sys_tx <= con_uart_tx;
+    console_video: hdmi_console
+        port map (
+            sys_clk => sys_clk, cpu_reset_n => rstn, uart_tx => con_uart_tx,
+            tmds_clk_p => tmds_clk_p, tmds_clk_n => tmds_clk_n,
+            tmds_data_p => tmds_data_p, tmds_data_n => tmds_data_n
+        );
 
 end;

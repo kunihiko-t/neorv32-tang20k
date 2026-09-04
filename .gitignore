@@ -1,3 +1,4 @@
 /build/
 /sw/minios_hello/target/
 /sw/minios_hello/build/
+__pycache__/

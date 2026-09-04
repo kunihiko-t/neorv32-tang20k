@@ -8,7 +8,8 @@ PACK_FLAGS = --jtag_as_gpio
 
 TOP_MODULE = top
 DESIGN = top
-APP_VERILOG = SysPLL.v
+APP_VERILOG = SysPLL.v hdmi_console.v text_pixels.v uart_rx.v terminal_buffer.v
+HDMI_VERILOG = diagnostics/hdmi/hdmi_timing.v diagnostics/hdmi/tmds_encode.v diagnostics/hdmi/video_pll.v
 APP_VHDL = LEDBlink.vhd \
 	BTNReset.vhd \
 	top.vhd
@@ -70,6 +71,7 @@ SIMULATION_SETS = i2s_master \
     sine_generator clock_generator fpga_soc_top fpga_standalone_top
 
 NTHREADS ?= 4
+GOWIN_PACK ?= tabbypy3 script/pack_gowin.py
 
 SW_FILE ?= neorv32_exe.bin
 APP_IMAGE = build/generated/neorv32_application_image.vhd
@@ -90,7 +92,7 @@ NEORVDIR=lib/neorv32/rtl
 # Generated variables
 ####################################################################################################
 SIM_SETS=$(addsuffix .sim,$(SIMULATION_SETS))
-SYN_VERILOG_PATHS=$(addprefix $(HDLDIR)/,$(APP_VERILOG))
+SYN_VERILOG_PATHS=$(addprefix $(HDLDIR)/,$(APP_VERILOG)) $(HDMI_VERILOG)
 SYN_VHDL_PATHS=$(addprefix $(HDLDIR)/,$(APP_VHDL)) \
 	$(subst $(NEORVDIR)/core/neorv32_application_image.vhd,$(APP_IMAGE),$(addprefix $(NEORVDIR)/,$(NEORV32_VHDL)))
 
@@ -107,7 +109,7 @@ SCRIPT_SUMMARY="$(abspath ./script/summary.py)"
 ####################################################################################################
 # Rules
 ####################################################################################################
-.PHONY: all synth pnr bitstream summary upload test-reset uart-probe hdmi-probe
+.PHONY: all synth pnr bitstream summary upload test-reset test-console uart-probe hdmi-probe
 .PRECIOUS: $(OBJDIR)/%.syn.json $(OBJDIR)/%.pnr.json
 
 # High-level wrapper targets
@@ -143,6 +145,14 @@ test-reset:
 	cd $(OBJDIR)/test && ghdl -a --std=08 ../../src/hdl/BTNReset.vhd ../../test/BTNReset_tb.vhd
 	cd $(OBJDIR)/test && ghdl -e --std=08 BTNReset_tb
 	cd $(OBJDIR)/test && ghdl -r --std=08 BTNReset_tb --stop-time=200ns
+
+test-console:
+	mkdir -p $(OBJDIR)/test
+	iverilog -g2012 -s tb_console -o $(OBJDIR)/test/console test/console_tb.v src/hdl/uart_rx.v src/hdl/terminal_buffer.v
+	vvp $(OBJDIR)/test/console
+	iverilog -g2012 -I diagnostics/hdmi -s text_pixels_tb -o $(OBJDIR)/test/text_pixels test/text_pixels_tb.v src/hdl/text_pixels.v
+	vvp $(OBJDIR)/test/text_pixels
+	tabbypy3 -m unittest discover -s test -p 'test_pack_gowin.py'
 
 uart-probe: $(OBJDIR)/uart_probe/uart_probe.fs
 
@@ -182,8 +192,8 @@ $(APP_IMAGE): $(APP_SOURCES)
 ####################################################################################################
 
 # Synthesis. TODO: Support multiple source sets / targets?
-$(OBJDIR)/%.syn.json: $(SYN_VERILOG_PATHS) $(SYN_VHDL_PATHS) | $(OBJDIR) $(RPTDIR)
-	yosys -m ghdl -p "ghdl --work=neorv32 $(SYN_VHDL_PATHS) -e $(TOP_MODULE); read_verilog $(SYN_VERILOG_PATHS); synth_gowin -top $(TOP_MODULE) -json $@" \
+$(OBJDIR)/%.syn.json: $(SYN_VERILOG_PATHS) $(SYN_VHDL_PATHS) diagnostics/hdmi/font_init.vh | $(OBJDIR) $(RPTDIR)
+	yosys -m ghdl -p "ghdl --work=neorv32 $(SYN_VHDL_PATHS) -e $(TOP_MODULE); read_verilog -I diagnostics/hdmi $(SYN_VERILOG_PATHS); synth_gowin -top $(TOP_MODULE) -json $@" \
 	  $(QUIET_FLAG) -l $(RPTDIR)/$*.syn.log --detailed-timing
 
 # Place and route
@@ -194,5 +204,5 @@ $(OBJDIR)/%.pnr.json $(RPTDIR)/%.pnr.json &: $(OBJDIR)/%.syn.json $(CONDIR)/%.cs
 	  --threads $(NTHREADS) --detailed-timing-report
 
 # Bitstream generation / Packing
-$(OBJDIR)/%.fs: $(OBJDIR)/%.pnr.json | $(OBJDIR)
-	gowin_pack -d $(GOWIN_FAMILY) $(PACK_FLAGS) -o $@ $<
+$(OBJDIR)/%.fs: $(OBJDIR)/%.pnr.json script/pack_gowin.py | $(OBJDIR)
+	$(GOWIN_PACK) -d $(GOWIN_FAMILY) $(PACK_FLAGS) -o $@ $<

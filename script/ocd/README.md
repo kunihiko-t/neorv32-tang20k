@@ -10,4 +10,5 @@
   `abstractcs=0x02000b01`(cmderr=busy固着)で不安定なため、
   ELFのLOADを`mww`で1語ずつ書く。固着時は`dmi_write 0x16 0x700`で解除し、
   読み戻し検証で不一致だけ最大8回書き直す。複数回走らせると収束する。
-  `reset run`はCPUを再起動してIMEM先頭から実行する。
+  検証後は`reboot.cfg`の`reg pc 0; resume`で転送済みプログラムを実行する。
+  `reset run`は内部ブートローダーへ戻るため、MiniOSの転送後には使わない。
