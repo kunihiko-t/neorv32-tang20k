@@ -219,3 +219,53 @@ FPGAを再構成するとMiniOSのRAM内容も失われるため、再転送が�
 電源を入れ直すとフラッシュ内のHDMIなし構成へ戻ります。
 
 Muse SparkとLunaの担当範囲、時間、品質の記録は[実装比較](docs/2026-09-04-muse-luna-evaluation.md)を参照してください。
+
+## フラッシュ自動起動の準備
+
+HDMIシェル動作版のソースと実行ファイルは、[復旧点の記録](docs/2026-09-04-hdmi-checkpoint.md)に保存しています。
+以下はMiniOS本体の起動イメージを作成する手順であり、フラッシュは書き換えません。
+`sw/minios_hello`とは別のプログラムです。
+
+```sh
+. script/env.sh
+cargo build --release -p minios-kernel --bin minios-kernel \
+  --target riscv32im-unknown-none-elf --locked \
+  --manifest-path /Users/valletta/dev/minios/Cargo.toml
+python3 -m unittest discover -s test -p test_minios32_image.py
+python3 script/build_minios32_image.py
+```
+
+生成物は`build/minios32/neorv32_exe.bin`です。
+別のチェックアウトを使う場合は、ビルド時の`--manifest-path`と生成時の`--minios`を同じMiniOSへ向けてください。
+生成処理はコンパイル済みのELFを使用し、メモリー範囲を検査した後に、同梱のNEORV32 `image_gen`でヘッダーを付けます。
+出力前にサイズとチェックサムを検証します。
+
+NEORV32のブートローダーは、フラッシュの`0x400000`から実行形式を読み、ペイロードをIMEMの先頭へ配置します。
+`.data`の初期値もIMEMに格納し、RV32起動コードがDMEMへコピーします。
+`script/ocd/gen_mww_load.py`も同じロードアドレス（LMA）へ書き込むため、JTAG経由のRAM起動と配置が一致します。
+
+| 保存対象 | フラッシュ内の開始位置 | 準備したファイル |
+| --- | --- | --- |
+| HDMI対応FPGA回路 | `0x000000` | `build/hdmi_minios/top.fs` |
+| MiniOS実行形式 | `0x400000` | `build/minios32/neorv32_exe.bin` |
+
+書き込み前にはGowinの構成用TAPを再検出し、対象フラッシュの容量を確認して既存内容をバックアップします。
+書き込みは領域ごとに`--verify`を付けて行い、最後に通常の電源投入で起動を確認します。
+この準備段階では、フラッシュ自動起動はまだ実機確認していません。
+
+2026年9月4日の候補は22,116バイト（ヘッダー12バイト、ペイロード22,104バイト）です。
+SHA-256は`8842da45e095cc35eba7e3ca90605978acb880d92124dfecf54f9a2b898c6891`です。
+MiniOSの起動処理修正は`6f49b7b`に保存しています。
+このELFの`.data`はLMA `0x5654`、VMA `0x80000000`、初期値`0xffffffff`の4バイトです。
+実機でVMAをゼロにして起動コードを実行する検査では、修正前はゼロのまま、修正後は初期値へのコピーを3回の読み戻しで確認しました。
+起動イメージのペイロードは、独立した`rust-objcopy -O binary`の出力とも完全一致しました。
+候補のELFと実行形式は、`../checkpoints/2026-09-04-flash-candidate/`にも保存しています。
+
+### USB-UARTのバイナリー転送制限
+
+標準BL616ファームウェアは、`Ctrl+X`に続く`Ctrl+C`でFPGAのUARTから管理端末へ切り替わります。
+これは[Sipeedの公式手順](https://en.wiki.sipeed.com/hardware/en/tang/tang-nano-20k/example/unbox.html#choose)に記載された操作です。
+今回の実行イメージにも同じバイト列が含まれ、ブートローダーへのUART転送中に`TangNano20K />`へ切り替わることを確認しました。
+そのため、バイナリーの転送にはJTAGを使います。
+管理端末へ入った場合は`choose uart`で通常の接続へ戻せます。
+半角文字によるMiniOSシェルの操作は引き続きUSB-UARTを使用します。
