@@ -13,11 +13,9 @@ SECS="${3:-25}"
 # CPUはRV32IM(C拡張なし)のためriscv32imでビルドする。imcだと即トラップする。
 make -C "$ROOT/sw/minios_hello" build/minios_hello.elf TARGET=riscv32im-unknown-none-elf
 
-VENV_PY="$ROOT/../tools/bl616/venv/bin/python"
-if [ -x "$VENV_PY" ]; then
-  PY="$VENV_PY"
-else
-  PY="python3"
+PY="${PYTHON:-python3}"
+if [ -z "${PYTHON:-}" ] && [ -x "$ROOT/.venv/bin/python" ]; then
+  PY="$ROOT/.venv/bin/python"
 fi
 
 LOG="$ROOT/build/uart_hello.log"
