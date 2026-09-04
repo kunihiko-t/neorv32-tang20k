@@ -4,9 +4,11 @@ set -euo pipefail
 
 . "$(dirname "$0")/env.sh"
 
-test "$XDG_CONFIG_HOME" = /Users/valletta/dev/tang_nano_20k/.tools/xdg/config
-test "$XDG_CACHE_HOME" = /Users/valletta/dev/tang_nano_20k/.tools/xdg/cache
-test "$XDG_DATA_HOME" = /Users/valletta/dev/tang_nano_20k/.tools/xdg/data
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+tools_dir="${TANG_TOOLS_DIR:-$(dirname "$repo_root")/.tools}"
+test "$XDG_CONFIG_HOME" = "$tools_dir/xdg/config"
+test "$XDG_CACHE_HOME" = "$tools_dir/xdg/cache"
+test "$XDG_DATA_HOME" = "$tools_dir/xdg/data"
 
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
 test -w "$XDG_CONFIG_HOME"

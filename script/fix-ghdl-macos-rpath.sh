@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-ghdl_bin=/Users/valletta/dev/tang_nano_20k/.tools/oss-cad-suite/libexec/ghdl
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+tools_dir="${TANG_TOOLS_DIR:-$(dirname "$repo_root")/.tools}"
+ghdl_bin="${OSS_CAD_SUITE:-$tools_dir/oss-cad-suite}/libexec/ghdl"
 rpath='@executable_path/../lib/'
 rpath_count=$(otool -l "$ghdl_bin" | awk -v wanted="$rpath" '$1 == "path" && $2 == wanted { count++ } END { print count + 0 }')
 
