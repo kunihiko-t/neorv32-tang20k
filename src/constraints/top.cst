@@ -27,6 +27,16 @@ IO_LOC "mspi_cs" 60;
 IO_LOC "mspi_clk" 59;
 IO_LOC "mspi_wp" 57;
 
+// Built-in microSD slot, SPI mode: DAT3=CS, CMD=MOSI, DAT0=MISO.
+IO_LOC "sd_clk" 83;
+IO_PORT "sd_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "sd_cmd" 82;
+IO_PORT "sd_cmd" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "sd_dat0" 84;
+IO_PORT "sd_dat0" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "sd_dat3" 81;
+IO_PORT "sd_dat3" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
 IO_LOC "tmds_clk_p" 33;
 IO_PORT "tmds_clk_p" IO_TYPE=LVDS25 PULL_MODE=NONE;
 IO_LOC "tmds_clk_n" 34;

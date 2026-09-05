@@ -21,6 +21,8 @@ entity top is
         mspi_cs: out std_logic;
         mspi_clk: out std_logic;
         mspi_wp: out std_logic;
+        sd_clk, sd_cmd, sd_dat3: out std_logic;
+        sd_dat0: in std_logic;
         tmds_clk_p, tmds_clk_n: out std_logic;
         tmds_data_p, tmds_data_n: out std_logic_vector(2 downto 0)
     );
@@ -169,9 +171,16 @@ begin
     mspi_wp <= '1' when rstn_wdt_o = '1' else '0';
     -- Input 0 is button 2
     con_gpio_in(0) <= key2;
+    -- GPIO bit 3 samples SD DAT0 (MISO).
+    con_gpio_in(3) <= sd_dat0;
 
     -- CS0 is SPI flash
     mspi_cs <= con_spi_csn(0);
+    -- SD uses GPIO bit-banged SPI, leaving the boot-flash input path untouched.
+    sd_clk <= con_gpio_out(0);
+    sd_cmd <= con_gpio_out(1);
+    -- Active-high GPIO select is inverted so reset value 0 keeps SD CS high.
+    sd_dat3 <= not con_gpio_out(2);
 
     sys_tx <= con_uart_tx;
     console_video: hdmi_console

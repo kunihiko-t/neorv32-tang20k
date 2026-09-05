@@ -110,6 +110,20 @@ SCRIPT_SUMMARY="$(abspath ./script/summary.py)"
 # Rules
 ####################################################################################################
 .PHONY: all synth pnr bitstream summary upload test-reset test-console uart-probe hdmi-probe
+.PHONY: test-sd sd-probe-firmware
+
+test-sd:
+	mkdir -p build/test
+	rustc --edition 2021 --test diagnostics/sd_probe/lib.rs -o build/test/sd_probe
+	build/test/sd_probe
+
+sd-probe-firmware:
+	mkdir -p build/sd_probe
+	rustc --edition 2021 --crate-name sd_probe --crate-type rlib --target riscv32im-unknown-none-elf \
+	  -C opt-level=s -C panic=abort diagnostics/sd_probe/lib.rs -o build/sd_probe/libsd_probe.rlib
+	rustc --edition 2021 --target riscv32im-unknown-none-elf -C opt-level=s -C panic=abort \
+	  -C link-arg=-Tdiagnostics/sd_probe/link.x --extern sd_probe=build/sd_probe/libsd_probe.rlib \
+	  diagnostics/sd_probe/main.rs -o build/sd_probe/probe.elf
 .PRECIOUS: $(OBJDIR)/%.syn.json $(OBJDIR)/%.pnr.json
 
 # High-level wrapper targets
